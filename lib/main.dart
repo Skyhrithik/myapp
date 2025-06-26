@@ -1,12 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  Future<bool> _isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('phone') != null && prefs.getString('password') != null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +26,21 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomePage(),
       debugShowCheckedModeBanner: false,
+      home: FutureBuilder<bool>(
+        future: _isLoggedIn(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          } else {
+            return snapshot.data == true ? const HomePage() : const LoginScreen();
+          }
+        },
+      ),
     );
   }
 }
+
 
 
 class LoginScreen extends StatefulWidget {
@@ -726,60 +738,64 @@ class _HomeContentState extends State<_HomeContent> {
             ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSectionTitle('Complete Your Findings'),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: 6,
-                  itemBuilder: (context, index) => _buildItemCard(context),
-                ),
-                const SizedBox(height: 20),
-                _buildSectionTitle('Reorder'),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: 6,
-                  itemBuilder: (context, index) => _buildItemCard(context),
-                ),
-                const SizedBox(height: 20),
-                _buildSectionTitle('Popular Products'),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: 6,
-                  itemBuilder: (context, index) => _buildItemCard(context),
-                ),
-                const SizedBox(height: 20),
-              ],
+       SliverToBoxAdapter(
+  child: Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Complete Your Findings'),
+        SizedBox(
+          height: 300,
+          child: GridView.builder(
+            padding: EdgeInsets.zero,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.75,
             ),
+            itemCount: 6,
+            itemBuilder: (context, index) => _buildItemCard(context),
           ),
         ),
+        const SizedBox(height: 20),
+        _buildSectionTitle('Reorder'),
+        SizedBox(
+          height: 300,
+          child: GridView.builder(
+            padding: EdgeInsets.zero,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: 6,
+            itemBuilder: (context, index) => _buildItemCard(context),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildSectionTitle('Popular Products'),
+        SizedBox(
+          height: 300,
+          child: GridView.builder(
+            padding: EdgeInsets.zero,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: 6,
+            itemBuilder: (context, index) => _buildItemCard(context),
+          ),
+        ),
+        const SizedBox(height: 20),
       ],
-    );
-  }
-}
-
+    ),
+  ),
+),
