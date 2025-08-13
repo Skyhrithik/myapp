@@ -1006,10 +1006,10 @@
 // version 4
 
 import 'package:flutter/material.dart';
-
 import '../models/product.dart';
-// NOTE: matches your tree: lib/services/api_services.dart (plural)
 import 'package:myapp/services/api_services.dart';
+import 'package:provider/provider.dart';
+import '../providers/provider.dart'; // <-- CartProvider
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -1070,29 +1070,52 @@ class _HomeContentState extends State<HomeContent> {
         : 'https://fps-dayalbagh-backend.vercel.app/$raw';
   }
 
-  // qty helpers
+  // --- CART HELPERS ---------------------------------------------------------
+  void _cartAdd(Product p, int qty) {
+    final id = p.id.toString(); // provider expects String id
+    final title = p.name;
+    final price =
+        double.tryParse(p.price) ?? 0.0; // backend has price as String
+    context.read<CartProvider>().add(
+      id: id,
+      title: title,
+      price: price,
+      qty: qty,
+    );
+  }
+
+  // qty helpers (keeps local display in sync with provider actions)
   int _getQty(Product p) => _qty[p.id] ?? 0;
+
   void _inc(Product p) {
     if (p.stock <= 0) return;
     final current = _qty[p.id] ?? 0;
     if (current >= p.stock) return;
     setState(() => _qty[p.id] = current + 1);
+    _cartAdd(p, 1); // <-- also add to provider
   }
 
   void _dec(Product p) {
     final current = _qty[p.id] ?? 0;
     if (current <= 0) return;
     setState(() => _qty[p.id] = current - 1);
+    context.read<CartProvider>().removeOne(
+      p.id.toString(),
+    ); // <-- remove from provider
   }
 
   void _addToCart(Product p) {
     final q = _getQty(p);
-    // Hook to your cart provider/backend here.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added ${q > 0 ? q : 1} × "${p.name}"')),
-    );
-    if (q == 0) _inc(p); // quick add 1 if none selected
+    final toAdd = q > 0 ? q : 1;
+    _cartAdd(p, toAdd); // <-- add selected qty (or 1)
+    if (q == 0) {
+      setState(() => _qty[p.id] = 1); // reflect in UI
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Added $toAdd × "${p.name}"')));
   }
+  // --------------------------------------------------------------------------
 
   Widget _buildCategoryIcon(int index) {
     final category = categories[index];
@@ -1152,12 +1175,12 @@ class _HomeContentState extends State<HomeContent> {
       margin: const EdgeInsets.all(8),
       clipBehavior: Clip.antiAlias,
       child: Container(
-        width: 180, // used in horizontal list; grid will size by aspect ratio
+        width: 180,
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image expands to take leftover space, avoids overflow
+            // Image
             Expanded(
               child: Stack(
                 children: [
@@ -1218,9 +1241,9 @@ class _HomeContentState extends State<HomeContent> {
 
             const SizedBox(height: 10),
 
-            // Name — fixed height area (2 lines max)
+            // Name
             SizedBox(
-              height: 36, // ~2 lines at 14sp
+              height: 36,
               child: Text(
                 p.name,
                 maxLines: 2,
@@ -1234,9 +1257,9 @@ class _HomeContentState extends State<HomeContent> {
 
             const SizedBox(height: 8),
 
-            // Price pill (tap = quick add)
+            // Price pill (tap = add to cart)
             GestureDetector(
-              onTap: () => _addToCart(p),
+              onTap: () => _addToCart(p), // <-- add here too
               child: Container(
                 height: 32,
                 alignment: Alignment.centerLeft,
@@ -1259,7 +1282,7 @@ class _HomeContentState extends State<HomeContent> {
 
             const SizedBox(height: 10),
 
-            // Quantity row — fixed height
+            // Quantity row
             SizedBox(
               height: 36,
               child: Row(
@@ -1267,7 +1290,7 @@ class _HomeContentState extends State<HomeContent> {
                 children: [
                   _qtyButton(
                     icon: Icons.remove,
-                    onTap: q > 0 ? () => _dec(p) : null,
+                    onTap: q > 0 ? () => _dec(p) : null, // <-- remove from cart
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -1289,7 +1312,9 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                   _qtyButton(
                     icon: Icons.add,
-                    onTap: (p.stock > 0 && q < p.stock) ? () => _inc(p) : null,
+                    onTap: (p.stock > 0 && q < p.stock)
+                        ? () => _inc(p)
+                        : null, // <-- add to cart
                   ),
                 ],
               ),
@@ -1301,6 +1326,7 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   // small rounded icon button for qty
+  // small rounded icon button for qty
   Widget _qtyButton({required IconData icon, VoidCallback? onTap}) {
     return Material(
       color: onTap == null ? Colors.grey.shade300 : Colors.orange,
@@ -1310,7 +1336,7 @@ class _HomeContentState extends State<HomeContent> {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Icon(icon, size: 18, color: Colors.white),
+          child: Icon(icon, size: 18, color: Colors.white), // <- use param
         ),
       ),
     );
@@ -1348,7 +1374,6 @@ class _HomeContentState extends State<HomeContent> {
       );
     }
 
-    // ======= Your original header/strip preserved =======
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -1429,9 +1454,8 @@ class _HomeContentState extends State<HomeContent> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Top horizontal products — fixed container; cards flex internally
                 SizedBox(
-                  height: 300, // ample height; card won't overflow
+                  height: 300,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1443,8 +1467,6 @@ class _HomeContentState extends State<HomeContent> {
             ),
           ),
         ),
-
-        // ======= Category sections (dynamic) =======
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -1458,11 +1480,10 @@ class _HomeContentState extends State<HomeContent> {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2, // bigger cards → 2 per row
+                          crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio:
-                              0.62, // tall items; card flexes inside
+                          childAspectRatio: 0.62,
                         ),
                     itemCount: entry.value.length,
                     itemBuilder: (context, index) =>

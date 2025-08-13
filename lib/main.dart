@@ -778,13 +778,17 @@
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 
+import 'providers/provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(create: (_) => CartProvider(), child: const MyApp()),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -798,7 +802,6 @@ class MyApp extends StatelessWidget {
   }
 
   /// Static helper for logging out from anywhere in the app.
-  /// Clears stored credentials and navigates to the login screen.
   static Future<void> logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
@@ -808,7 +811,7 @@ class MyApp extends StatelessWidget {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false, // remove all previous routes
+        (route) => false,
       );
     }
   }

@@ -23,7 +23,7 @@ class Product {
     id: j['id'],
     name: j['name'] ?? '',
     stock: j['stock'] ?? 0,
-    price: j['price'] ?? '0',
+    price: j['price']?.toString() ?? '0',
     category: j['category'] ?? 0,
     categoryName: j['category_name'] ?? '',
     image: j['image'],
