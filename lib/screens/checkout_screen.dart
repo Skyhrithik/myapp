@@ -304,7 +304,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _loading = true);
 
     try {
-      // Build the payload once from cart + form
       final payload = _buildOrderPayload(
         paymentMethod: _method == PaymentMethod.cod ? 'COD' : 'UPI',
         name: _nameCtrl.text.trim(),

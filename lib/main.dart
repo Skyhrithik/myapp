@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Fair Price Shop',
+      title: 'Fair Price Shop', // Or use 'fps'
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
