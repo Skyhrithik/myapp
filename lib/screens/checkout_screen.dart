@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <-- added
 import '../config/config.dart';
 
 import '../providers/provider.dart'; // CartProvider
@@ -15,12 +16,16 @@ const kConstPincode = '282005';
 
 // === UPI (replace with your merchant details) ===
 // Customer pays to THIS UPI ID (your store's VPA)
-const kMerchantVpa = 'fpsstore@upi'; // todo: put your real UPI ID
+const kMerchantVpa = 'paytmqr6jkklj@ptys'; // todo: put your real UPI ID
 const kMerchantName = 'FPS Store';
 
 // === API base (config-driven is better; keep it simple here) ===
 const kApiBase = '${AppConfig.baseUrl}/me/orders/';
 // This works because baseUrl is static const
+
+// Optional: temporary dev token fallback while you wire login storage.
+// Remove this in production.
+const String? kDevTokenForDebug = 'c0a70d98a54873f784cd81f5a07a9924690674f8';
 
 // If you use JWT, inject it via Provider or secure storage
 String? getAuthToken(BuildContext context) {
@@ -221,7 +226,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Make Payment'),
+                            : const Text('Place Order'),
                       ),
                     ),
                   ],
@@ -273,12 +278,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'Scan with any UPI app to pay ₹${amount.toStringAsFixed(2)} to $kMerchantName',
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.open_in_new),
-            onPressed: () => _launchUpi(upiUrl),
-            label: const Text('Open in UPI app'),
-          ),
         ] else ...[
           const _LabeledRow(
             label: 'Pay to UPI ID',
@@ -286,11 +285,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             copyable: true,
           ),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.open_in_new),
-            onPressed: () => _launchUpi(upiUrl),
-            label: const Text('Pay via UPI app'),
-          ),
         ],
       ],
     );
@@ -479,33 +473,77 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return res;
   }
 
+  // ---------- Networking helpers (auth + requests) ----------
+
+  Future<Map<String, String>> _authJsonHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Prefer a token you saved at login:
+    final stored = prefs.getString('token');
+
+    // If not present yet, fall back to the provided dev token to keep you unblocked.
+    final token = stored ?? kDevTokenForDebug;
+
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Token $token',
+    };
+  }
+
+  String? _extractErrorMessage(String body) {
+    try {
+      final parsed = jsonDecode(body);
+      if (parsed is Map) {
+        if (parsed['detail'] != null) return parsed['detail'].toString();
+        if (parsed['error'] != null) return parsed['error'].toString();
+        if (parsed.values.isNotEmpty) return parsed.values.first.toString();
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<bool> _createOrder(Map<String, dynamic> payload) async {
-    final token = getAuthToken(context);
+    final headers = await _authJsonHeaders();
     final res = await http.post(
-      Uri.parse('$kApiBase/orders/'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
+      Uri.parse(kApiBase),
+      headers: headers,
       body: jsonEncode(payload),
     );
-    return res.statusCode == 200 || res.statusCode == 201;
+
+    if (res.statusCode == 200 || res.statusCode == 201) return true;
+
+    debugPrint('Create COD order failed: ${res.statusCode} ${res.body}');
+    final msg = _extractErrorMessage(res.body) ?? 'HTTP ${res.statusCode}';
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Create order failed: $msg')));
+    }
+    return false;
   }
 
   /// Create order and get its id & amount (for UPI)
   Future<_OrderCreateRes?> _createOrderAndGetId(
     Map<String, dynamic> payload,
   ) async {
-    final token = getAuthToken(context);
+    final headers = await _authJsonHeaders();
     final res = await http.post(
-      Uri.parse('$kApiBase/orders/'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
+      Uri.parse(kApiBase),
+      headers: headers,
       body: jsonEncode(payload),
     );
-    if (res.statusCode != 200 && res.statusCode != 201) return null;
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      debugPrint('Create UPI order failed: ${res.statusCode} ${res.body}');
+      final msg = _extractErrorMessage(res.body);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Create UPI order failed: ${msg ?? res.statusCode}'),
+          ),
+        );
+      }
+      return null;
+    }
     final data = jsonDecode(res.body);
     final id = data['id'] ?? data['order_id'];
     final amount = (data['total_amount'] ?? data['amount'] ?? 0).toDouble();
@@ -516,16 +554,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<bool> _confirmUpi(int orderId, String txnId) async {
-    final token = getAuthToken(context);
+    final headers = await _authJsonHeaders();
+    // Adjust this endpoint if your backend uses a different confirm path.
+    // Kept separate from kApiBase to avoid accidental double "orders".
+    final confirmUri = Uri.parse(
+      '${AppConfig.baseUrl}/me/orders/$orderId/confirm-upi/',
+    );
     final res = await http.post(
-      Uri.parse('$kApiBase/orders/$orderId/upi/confirm/'),
-      headers: {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
+      confirmUri,
+      headers: headers,
       body: jsonEncode({'txn_id': txnId}),
     );
-    return res.statusCode == 200;
+    if (res.statusCode != 200) {
+      debugPrint('UPI confirm failed: ${res.statusCode} ${res.body}');
+      return false;
+    }
+    return true;
   }
 }
 
