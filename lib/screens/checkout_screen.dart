@@ -482,10 +482,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<bool> _createOrder(Map<String, dynamic> payload) async {
     final token = getAuthToken(context);
     final res = await http.post(
-      Uri.parse('$kApiBase/orders/'),
+      Uri.parse(kApiBase), // <-- FIXED
       headers: {
         'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
+        if (token != null) 'Authorization': 'Token $token',
       },
       body: jsonEncode(payload),
     );
@@ -498,7 +498,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   ) async {
     final token = getAuthToken(context);
     final res = await http.post(
-      Uri.parse('$kApiBase/orders/'),
+      Uri.parse(kApiBase), // <-- FIXED
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
@@ -518,7 +518,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<bool> _confirmUpi(int orderId, String txnId) async {
     final token = getAuthToken(context);
     final res = await http.post(
-      Uri.parse('$kApiBase/orders/$orderId/upi/confirm/'),
+      Uri.parse('$kApiBase/orders/$orderId/'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
