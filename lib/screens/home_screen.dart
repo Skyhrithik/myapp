@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'cart_screen.dart';
-import 'favorites_screen.dart';
+// import 'favorites_screen.dart'; // removed, no longer used here
 import 'profile_screen.dart';
 import '../widgets/home_content.dart';
 import 'menu_drawer.dart';
 import 'products_page.dart';
 import 'login_screen.dart';
+import 'my_orders_page.dart'; // <-- added
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,7 +22,7 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = <Widget>[
     const HomeContent(),
-    const FavoritesPage(),
+    const MyOrdersPage(),
     const CartPage(),
     const ProfilePage(),
   ];
@@ -78,8 +79,8 @@ class _HomePageState extends State<HomePage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            label: 'Favorites',
+            icon: Icon(Icons.receipt_long),
+            label: 'my orders',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart_outlined),
