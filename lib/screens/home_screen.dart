@@ -6,7 +6,6 @@ import 'favorites_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/home_content.dart';
 import 'menu_drawer.dart';
-import 'products_page.dart';
 import 'login_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -47,26 +46,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const MenuDrawer(),
-      appBar: AppBar(
-        title: const Text('Fair Price Shop'),
-        actions: [
-          IconButton(
-            tooltip: 'Products',
-            icon: const Icon(Icons.storefront_outlined),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProductsPage()),
-              );
-            },
-          ),
-          IconButton(
-            tooltip: 'Logout',
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
-      ),
+
       body: SafeArea(child: _pages[_selectedIndex]),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
