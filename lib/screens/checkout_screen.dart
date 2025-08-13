@@ -226,7 +226,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Place Order'),
+                            : const Text('Place Your Order'),
                       ),
                     ),
                   ],
