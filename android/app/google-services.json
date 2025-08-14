@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "182640675896",
+    "project_id": "fair-price-shop-6e85e",
+    "storage_bucket": "fair-price-shop-6e85e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:182640675896:android:253a1d6d7164fc3d83aacd",
+        "android_client_info": {
+          "package_name": "in.fps.shop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJRRh0ER3B_cS8-hMwKvicRPTKmUBEz2Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -581,15 +581,414 @@
 //     );
 //   }
 // }
+// import 'package:flutter/material.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:http/http.dart' as http;
+// import 'dart:convert';
+
+// import 'home_screen.dart';
+// import 'signup_screen.dart';
+// import '../constants.dart'; // baseUrl
+// import '../theme/palette.dart'; // ← use your palette colors
+
+// class LoginScreen extends StatefulWidget {
+//   const LoginScreen({super.key});
+
+//   @override
+//   State<LoginScreen> createState() => _LoginScreenState();
+// }
+
+// class _LoginScreenState extends State<LoginScreen> {
+//   final TextEditingController _phoneController = TextEditingController();
+//   final TextEditingController _passwordController = TextEditingController();
+//   bool _isLoading = false;
+
+//   Future<void> _login() async {
+//     final phone = _phoneController.text.trim();
+//     final password = _passwordController.text.trim();
+
+//     if (phone.isEmpty || password.isEmpty) {
+//       if (!mounted) return;
+//       ScaffoldMessenger.of(
+//         context,
+//       ).showSnackBar(const SnackBar(content: Text("Please enter all fields")));
+//       return;
+//     }
+
+//     setState(() => _isLoading = true);
+
+//     final url = Uri.parse('$baseUrl/users/login/');
+//     try {
+//       final response = await http.post(
+//         url,
+//         headers: {'Content-Type': 'application/json'},
+//         body: jsonEncode({"phone": phone, "password": password}),
+//       );
+
+//       // Try decode regardless, server often sends error JSON too
+//       Map<String, dynamic> data = {};
+//       try {
+//         final decoded = jsonDecode(response.body);
+//         if (decoded is Map<String, dynamic>) data = decoded;
+//       } catch (_) {
+//         // ignore decode errors; we'll fall back to status code handling
+//       }
+
+//       if (response.statusCode == 200) {
+//         final prefs = await SharedPreferences.getInstance();
+
+//         // Save token
+//         final token = (data['token'] ?? '').toString();
+//         await prefs.setString('token', token);
+
+//         // Save user fields if present
+//         if (data['user'] is Map<String, dynamic>) {
+//           final user = data['user'] as Map<String, dynamic>;
+
+//           // id
+//           final dynamic rawId = user['id'];
+//           final int userId = rawId is int
+//               ? rawId
+//               : int.tryParse('${rawId ?? 0}') ?? 0;
+//           await prefs.setInt('user_id', userId);
+
+//           // name/phone/address/gender
+//           await prefs.setString('name', (user['name'] ?? '').toString());
+//           await prefs.setString('phone', (user['phone'] ?? phone).toString());
+//           await prefs.setString('address', (user['address'] ?? '').toString());
+//           await prefs.setString('gender', (user['gender'] ?? '').toString());
+
+//           // flags/timestamps
+//           final isActive = (user['is_active'] ?? true) == true;
+//           await prefs.setBool('is_active', isActive);
+//           await prefs.setString(
+//             'last_login',
+//             (user['last_login'] ?? '').toString(),
+//           );
+
+//           // keep full JSON for future fields
+//           await prefs.setString('user_json', jsonEncode(user));
+//         } else {
+//           // At least keep the phone we logged in with
+//           await prefs.setString('phone', phone);
+//         }
+
+//         if (!mounted) return;
+//         ScaffoldMessenger.of(
+//           context,
+//         ).showSnackBar(const SnackBar(content: Text('Login Successful!')));
+//         Navigator.pushReplacement(
+//           context,
+//           MaterialPageRoute(builder: (_) => const HomePage()),
+//         );
+//       } else {
+//         if (!mounted) return;
+//         final msg = (data['error'] ?? data['detail'] ?? 'Login failed')
+//             .toString();
+//         ScaffoldMessenger.of(
+//           context,
+//         ).showSnackBar(SnackBar(content: Text(msg)));
+//       }
+//     } catch (e) {
+//       if (!mounted) return;
+//       ScaffoldMessenger.of(
+//         context,
+//       ).showSnackBar(SnackBar(content: Text('Login error: $e')));
+//     } finally {
+//       if (mounted) setState(() => _isLoading = false);
+//     }
+//   }
+
+//   // ---------- UI helpers (colors + cosmetics only) ----------
+
+//   InputDecoration _inputDeco({required String hint, IconData? prefix}) {
+//     return InputDecoration(
+//       hintText: hint,
+//       hintStyle: TextStyle(
+//         fontFamily: 'Serif',
+//         color: kTextPrimary.withOpacity(0.55),
+//       ),
+//       prefixIcon: prefix != null ? Icon(prefix, color: kPrimary) : null,
+//       filled: true,
+//       fillColor: kCard,
+//       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+//       border: OutlineInputBorder(
+//         borderRadius: BorderRadius.circular(28),
+//         borderSide: BorderSide(color: kBorder),
+//       ),
+//       enabledBorder: OutlineInputBorder(
+//         borderRadius: BorderRadius.circular(28),
+//         borderSide: BorderSide(color: kBorder),
+//       ),
+//       focusedBorder: OutlineInputBorder(
+//         borderRadius: BorderRadius.circular(28),
+//         borderSide: BorderSide(color: kPrimary, width: 1.6),
+//       ),
+//     );
+//   }
+
+//   Widget _buildLoginForm() {
+//     return Column(
+//       mainAxisAlignment: MainAxisAlignment.center,
+//       children: [
+//         // Title
+//         Text(
+//           'Fair Price Shop',
+//           style: TextStyle(
+//             fontSize: 26,
+//             fontWeight: FontWeight.w800,
+//             fontFamily: 'Serif',
+//             color: kTextPrimary,
+//             letterSpacing: 0.2,
+//           ),
+//         ),
+//         const SizedBox(height: 6),
+//         Container(
+//           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+//           decoration: BoxDecoration(
+//             color: kPrimarySoft,
+//             borderRadius: BorderRadius.circular(999),
+//             border: Border.all(color: kBorder),
+//           ),
+//           child: Text(
+//             'Welcome back',
+//             style: TextStyle(color: kPrimary, fontWeight: FontWeight.w700),
+//           ),
+//         ),
+
+//         const SizedBox(height: 20),
+
+//         // Phone
+//         TextField(
+//           controller: _phoneController,
+//           keyboardType: TextInputType.phone,
+//           style: TextStyle(color: kTextPrimary),
+//           decoration: _inputDeco(
+//             hint: '+91 Enter Mobile number',
+//             prefix: Icons.phone_android_outlined,
+//           ),
+//         ),
+
+//         const SizedBox(height: 14),
+
+//         // Password
+//         TextField(
+//           controller: _passwordController,
+//           obscureText: true,
+//           style: TextStyle(color: kTextPrimary),
+//           decoration: _inputDeco(
+//             hint: 'Enter Password',
+//             prefix: Icons.lock_outline,
+//           ),
+//         ),
+
+//         const SizedBox(height: 18),
+
+//         // Login button
+//         SizedBox(
+//           width: double.infinity,
+//           child: ElevatedButton(
+//             onPressed: _isLoading ? null : _login,
+//             style:
+//                 ElevatedButton.styleFrom(
+//                   backgroundColor: kPrimary,
+//                   foregroundColor: Colors.white,
+//                   elevation: 0,
+//                   padding: const EdgeInsets.symmetric(vertical: 14),
+//                   shape: RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(14),
+//                   ),
+//                 ).copyWith(
+//                   overlayColor: MaterialStatePropertyAll(
+//                     Colors.white.withOpacity(0.08),
+//                   ),
+//                 ),
+//             child: _isLoading
+//                 ? const SizedBox(
+//                     height: 18,
+//                     width: 18,
+//                     child: CircularProgressIndicator(
+//                       strokeWidth: 2,
+//                       color: Colors.white,
+//                     ),
+//                   )
+//                 : const Text(
+//                     'Log In',
+//                     style: TextStyle(fontWeight: FontWeight.w700),
+//                   ),
+//           ),
+//         ),
+
+//         const SizedBox(height: 10),
+
+//         // Register link
+//         GestureDetector(
+//           onTap: () {
+//             Navigator.push(
+//               context,
+//               MaterialPageRoute(builder: (context) => const SignupScreen()),
+//             );
+//           },
+//           child: Text(
+//             "Register",
+//             style: TextStyle(
+//               fontSize: 14,
+//               color: kPrimary,
+//               decoration: TextDecoration.underline,
+//               decorationColor: kPrimary,
+//             ),
+//             textAlign: TextAlign.center,
+//           ),
+//         ),
+
+//         const SizedBox(height: 10),
+
+//         // Terms
+//         Text(
+//           "By continuing, you agree to our Terms of services & Privacy policy",
+//           style: TextStyle(fontSize: 11, color: kTextPrimary.withOpacity(0.6)),
+//           textAlign: TextAlign.center,
+//         ),
+//       ],
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final size = MediaQuery.of(context).size;
+//     final isLandscape =
+//         MediaQuery.of(context).orientation == Orientation.landscape;
+
+//     // Shared “card” that wraps the form (no logic change, just looks)
+//     Widget formCard() {
+//       return Center(
+//         child: SingleChildScrollView(
+//           child: ConstrainedBox(
+//             constraints: const BoxConstraints(maxWidth: 520),
+//             child: Container(
+//               padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+//               decoration: BoxDecoration(
+//                 color: Colors.white.withOpacity(0.92),
+//                 borderRadius: BorderRadius.circular(20),
+//                 border: Border.all(color: kBorder),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.06),
+//                     blurRadius: 18,
+//                     offset: const Offset(0, 10),
+//                   ),
+//                 ],
+//               ),
+//               child: _buildLoginForm(),
+//             ),
+//           ),
+//         ),
+//       );
+//     }
+
+//     return Scaffold(
+//       // Full-screen palette gradient
+//       body: Container(
+//         decoration: BoxDecoration(
+//           gradient: LinearGradient(
+//             begin: Alignment.topCenter,
+//             end: Alignment.bottomCenter,
+//             colors: [kBgTop, kBgBottom],
+//           ),
+//         ),
+//         child: SafeArea(
+//           child: LayoutBuilder(
+//             builder: (context, constraints) {
+//               return isLandscape
+//                   ? Row(
+//                       children: [
+//                         // Left image
+//                         Expanded(
+//                           child: ClipRRect(
+//                             borderRadius: const BorderRadius.only(
+//                               topRight: Radius.circular(24),
+//                               bottomRight: Radius.circular(24),
+//                             ),
+//                             child: Stack(
+//                               fit: StackFit.expand,
+//                               children: [
+//                                 Image.asset(
+//                                   'assets/homepage.png',
+//                                   height: double.infinity,
+//                                   fit: BoxFit.cover,
+//                                 ),
+//                                 // Subtle overlay for readability
+//                                 Container(
+//                                   color: Colors.black.withOpacity(0.15),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ),
+//                         // Right form panel
+//                         Expanded(
+//                           child: Padding(
+//                             padding: const EdgeInsets.all(20),
+//                             child: formCard(),
+//                           ),
+//                         ),
+//                       ],
+//                     )
+//                   : Column(
+//                       children: [
+//                         // Header image
+//                         SizedBox(
+//                           height: size.height * 0.42,
+//                           width: double.infinity,
+//                           child: ClipRRect(
+//                             borderRadius: const BorderRadius.only(
+//                               bottomLeft: Radius.circular(24),
+//                               bottomRight: Radius.circular(24),
+//                             ),
+//                             child: Stack(
+//                               fit: StackFit.expand,
+//                               children: [
+//                                 Image.asset(
+//                                   'assets/homepage.png',
+//                                   fit: BoxFit.cover,
+//                                 ),
+//                                 Container(
+//                                   color: Colors.black.withOpacity(0.15),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ),
+//                         // Form area
+//                         Expanded(
+//                           child: Padding(
+//                             padding: const EdgeInsets.symmetric(
+//                               horizontal: 20,
+//                               vertical: 16,
+//                             ),
+//                             child: formCard(),
+//                           ),
+//                         ),
+//                       ],
+//                     );
+//             },
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 import 'home_screen.dart';
 import 'signup_screen.dart';
 import '../constants.dart'; // baseUrl
-import '../theme/palette.dart'; // ← use your palette colors
+import '../theme/palette.dart'; // colors
+import '../services/push_service.dart'; // <-- FCM device registration
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -602,6 +1001,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscure = true;
 
   Future<void> _login() async {
     final phone = _phoneController.text.trim();
@@ -625,40 +1025,42 @@ class _LoginScreenState extends State<LoginScreen> {
         body: jsonEncode({"phone": phone, "password": password}),
       );
 
-      // Try decode regardless, server often sends error JSON too
       Map<String, dynamic> data = {};
       try {
         final decoded = jsonDecode(response.body);
         if (decoded is Map<String, dynamic>) data = decoded;
       } catch (_) {
-        // ignore decode errors; we'll fall back to status code handling
+        /* ignore */
       }
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
 
-        // Save token
+        // 1) Save token
         final token = (data['token'] ?? '').toString();
+        if (token.isEmpty) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Login failed: token missing')),
+          );
+          setState(() => _isLoading = false);
+          return;
+        }
         await prefs.setString('token', token);
 
-        // Save user fields if present
+        // 2) Save user info
+        int userId = 0;
         if (data['user'] is Map<String, dynamic>) {
           final user = data['user'] as Map<String, dynamic>;
-
-          // id
           final dynamic rawId = user['id'];
-          final int userId = rawId is int
-              ? rawId
-              : int.tryParse('${rawId ?? 0}') ?? 0;
-          await prefs.setInt('user_id', userId);
+          userId = rawId is int ? rawId : int.tryParse('${rawId ?? 0}') ?? 0;
 
-          // name/phone/address/gender
+          await prefs.setInt('user_id', userId);
           await prefs.setString('name', (user['name'] ?? '').toString());
           await prefs.setString('phone', (user['phone'] ?? phone).toString());
           await prefs.setString('address', (user['address'] ?? '').toString());
           await prefs.setString('gender', (user['gender'] ?? '').toString());
 
-          // flags/timestamps
           final isActive = (user['is_active'] ?? true) == true;
           await prefs.setBool('is_active', isActive);
           await prefs.setString(
@@ -666,11 +1068,24 @@ class _LoginScreenState extends State<LoginScreen> {
             (user['last_login'] ?? '').toString(),
           );
 
-          // keep full JSON for future fields
+          // Keep full JSON for future fields
           await prefs.setString('user_json', jsonEncode(user));
         } else {
-          // At least keep the phone we logged in with
+          // At least store phone used for login
           await prefs.setString('phone', phone);
+        }
+
+        // 3) Register this device/token with backend for push notifications
+        try {
+          if (userId > 0) {
+            await PushService.registerDeviceWithBackend(
+              authToken: token,
+              userId: userId,
+              isAdmin: false, // set true only for shopkeeper build
+            );
+          }
+        } catch (_) {
+          // Don’t block login on push registration failure
         }
 
         if (!mounted) return;
@@ -700,8 +1115,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ---------- UI helpers (colors + cosmetics only) ----------
-
-  InputDecoration _inputDeco({required String hint, IconData? prefix}) {
+  InputDecoration _inputDeco({
+    required String hint,
+    IconData? prefix,
+    Widget? suffix,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(
@@ -709,6 +1127,7 @@ class _LoginScreenState extends State<LoginScreen> {
         color: kTextPrimary.withOpacity(0.55),
       ),
       prefixIcon: prefix != null ? Icon(prefix, color: kPrimary) : null,
+      suffixIcon: suffix,
       filled: true,
       fillColor: kCard,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -731,7 +1150,6 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Title
         Text(
           'Fair Price Shop',
           style: TextStyle(
@@ -771,14 +1189,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
         const SizedBox(height: 14),
 
-        // Password
+        // Password (with visibility toggle)
         TextField(
           controller: _passwordController,
-          obscureText: true,
+          obscureText: _obscure,
           style: TextStyle(color: kTextPrimary),
           decoration: _inputDeco(
             hint: 'Enter Password',
             prefix: Icons.lock_outline,
+            suffix: IconButton(
+              onPressed: () => setState(() => _obscure = !_obscure),
+              icon: Icon(
+                _obscure ? Icons.visibility_off : Icons.visibility,
+                color: kPrimary,
+              ),
+              tooltip: _obscure ? 'Show' : 'Hide',
+            ),
           ),
         ),
 
@@ -859,7 +1285,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    // Shared “card” that wraps the form (no logic change, just looks)
     Widget formCard() {
       return Center(
         child: SingleChildScrollView(
@@ -887,7 +1312,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return Scaffold(
-      // Full-screen palette gradient
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -902,7 +1326,6 @@ class _LoginScreenState extends State<LoginScreen> {
               return isLandscape
                   ? Row(
                       children: [
-                        // Left image
                         Expanded(
                           child: ClipRRect(
                             borderRadius: const BorderRadius.only(
@@ -917,7 +1340,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   height: double.infinity,
                                   fit: BoxFit.cover,
                                 ),
-                                // Subtle overlay for readability
                                 Container(
                                   color: Colors.black.withOpacity(0.15),
                                 ),
@@ -925,7 +1347,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        // Right form panel
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.all(20),
@@ -936,7 +1357,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     )
                   : Column(
                       children: [
-                        // Header image
                         SizedBox(
                           height: size.height * 0.42,
                           width: double.infinity,
@@ -959,7 +1379,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        // Form area
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
