@@ -1,13 +1,90 @@
+// import 'package:flutter/material.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+
+// import 'cart_screen.dart';
+// // import 'favorites_screen.dart'; // removed, no longer used here
+// import 'profile_screen.dart';
+// import '../widgets/home_content.dart';
+// import 'menu_drawer.dart';
+// import 'login_screen.dart';
+// import 'my_orders_page.dart'; // <-- added
+
+// class HomePage extends StatefulWidget {
+//   const HomePage({super.key});
+
+//   @override
+//   State<HomePage> createState() => _HomePageState();
+// }
+
+// class _HomePageState extends State<HomePage> {
+//   int _selectedIndex = 0;
+
+//   final List<Widget> _pages = <Widget>[
+//     const HomeContent(),
+//     const MyOrdersPage(),
+//     const CartPage(),
+//     const ProfilePage(),
+//   ];
+
+//   void _onItemTapped(int index) {
+//     setState(() => _selectedIndex = index);
+//   }
+
+//   Future<void> _logout() async {
+//     final prefs = await SharedPreferences.getInstance();
+//     await prefs.remove('token');
+//     await prefs.remove('phone');
+
+//     if (!mounted) return;
+//     Navigator.pushAndRemoveUntil(
+//       context,
+//       MaterialPageRoute(builder: (_) => const LoginScreen()),
+//       (route) => false,
+//     );
+//   }
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       drawer: const MenuDrawer(),
+//       body: SafeArea(child: _pages[_selectedIndex]),
+//       bottomNavigationBar: BottomNavigationBar(
+//         currentIndex: _selectedIndex,
+//         onTap: _onItemTapped,
+//         type: BottomNavigationBarType.fixed,
+//         selectedItemColor: Theme.of(context).colorScheme.primary,
+//         unselectedItemColor: Colors.grey,
+//         backgroundColor: Colors.white,
+//         items: const [
+//           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+//           BottomNavigationBarItem(
+//             icon: Icon(Icons.receipt_long),
+//             label: 'my orders',
+//           ),
+//           BottomNavigationBarItem(
+//             icon: Icon(Icons.shopping_cart_outlined),
+//             label: 'Cart',
+//           ),
+//           BottomNavigationBarItem(
+//             icon: Icon(Icons.person_outline),
+//             label: 'Profile',
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'cart_screen.dart';
-// import 'favorites_screen.dart'; // removed, no longer used here
 import 'profile_screen.dart';
 import '../widgets/home_content.dart';
 import 'menu_drawer.dart';
 import 'login_screen.dart';
 import 'my_orders_page.dart'; // <-- added
+import '../theme/palette.dart'; // <-- palette import
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -47,15 +124,14 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const MenuDrawer(),
-
       body: SafeArea(child: _pages[_selectedIndex]),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.white,
+        selectedItemColor: kPrimary, // ← palette
+        unselectedItemColor: kTextPrimary.withOpacity(0.55), // ← palette
+        backgroundColor: kBgBottom, // ← palette
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
